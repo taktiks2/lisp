@@ -25,8 +25,6 @@
       (print (fizzbuzz i))
       (incf i))))
 
-;(trace fizzbuzz)
-;(recursion-fizzbuzz 1 20)
-;(dotimes-fizzbuzz 20)
+(recursion-fizzbuzz 1 20)
+(dotimes-fizzbuzz 20)
 (loop-fizzbuzz 20)
-;(untrace fizzbuzz)
