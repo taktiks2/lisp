@@ -52,9 +52,9 @@
 
 (defun pickup (object)
   (cond ((member object
-          (object-at *location* *objects* *object-locations*))
-         (push (list object 'body') *object-locations*)
-        `(you are now carrying the ,object.))
+          (objects-at *location* *objects* *object-locations*))
+         (push (list object 'body) *object-locations*)
+        `(you are now carrying the ,object))
         (t '(you cannot get that.))))
 
 (defun inventory ()
@@ -68,7 +68,7 @@
       (game-repl))))
 
 (defun game-read ()
-  (let ((dmd (read-from-string
+  (let ((cmd (read-from-string
                (concatenate 'string "(" (read-line) ")"))))
     (flet ((quote-it (x)
              (list 'quote x)))
@@ -78,3 +78,25 @@
   (if (member (car sexp) *allowed-commands*)
       (eval sexp)
       '(i do not know that command.)))
+
+(defun tweak-text (lst caps lit)
+  (when lst
+    (let ((item (car lst))
+          (rest (cdr lst)))
+      (cond ((eql item #\space) (cons item (tweak-text rest caps lit)))
+            ((member item '(#\! #\? #\.)) (cons item (tweak-text rest t lit)))
+            ((eql item #\") (tweak rest caps (not lit)))
+            (lit (cons item (tweak-text rest nil lit)))
+            (caps (cons (char-upcase item) (tweak-text rest nil lit)))
+            (t (cons (char-downcase item) (tweak-text rest nil nil)))))))
+
+(defun game-print (lst)
+  (princ (coerce (tweak-text (coerce (string-trim "() "
+                                      (prin1-to-string lst))
+                              'list)
+                  t
+                  nil)
+                 'string))
+  (fresh-line))
+
+(game-repl)
