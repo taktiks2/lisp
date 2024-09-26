@@ -61,29 +61,27 @@
       (traverse node)) ; 宣言したtraverseを実行
     visited)) ; 訪れたノードを返す
 
+;; 互いに接続されているノードのグループを取得する関数
+;; exp: (find-islands '(1 2 3 4) '((1 . 2) (2 . 1) (3 . 4) (4 . 3)) => ((3 4) (2 1))
 (defun find-islands (nodes edge-list)
-  (let ((islands nil))
-    (labels ((find-island (nodes)
+  (let ((islands nil)) ; islinds: 互いに接続されたnodeのグループを記録する変数を宣言
+    (labels ((find-island (nodes) ; find-island: 互いに接続されたnodeのグループを取得する再帰関数を宣言
                (let* ((connected (get-connected (car nodes) edge-list))
-                      (unconnected (set-difference nodes connected)))
-                 (push connected islands)
-                 (when unconnected
+                      (unconnected (set-difference nodes connected))) ; set-difference: ２つのリストの差分を取得する
+                 (push connected islands) ; connectedをislandsに追加
+                 (when unconnected ; unconnectedが存在する場合にfind-islandを再帰実行
                    (find-island unconnected)))))
-      (find-island nodes))
-    islands))
+      (find-island nodes)) ; 宣言したfind-islandを実行
+    islands)) ; 互いに接続されたnodeのグループを返す
 
+;; 島同士をつなぐエッジを生成する関数
+;; exp: (connect-with-bridges '((1 2) (3 4))) => ((1 . 3) (3 . 1))
 (defun connect-with-bridges (islands)
-  (when (cdr islands)
-    (append (edge-pair (caar islands) (caadr islands))
+  (when (cdr islands) ; islandsが2つ以上の要素を持つ場合
+    (append (edge-pair (caar islands) (caadr islands)) ; append: 複数のリストを結合して一つのリストにする
             (connect-with-bridges (cdr islands)))))
 
+;; すべての島をつなぐ橋を生成する関数
+;; exp: (connect-all-islands '(1 2 3 4) '((1 . 2) (2 . 1) (3 . 4) (4 . 3))) => ((3 . 2) (2 . 3) (3 . 4) (4 . 3) (1 . 3) (3 . 1))
 (defun connect-all-islands (nodes edge-list)
   (append (connect-with-bridges (find-islands nodes edge-list)) edge-list))
-
-;(make-edge-list)
-;(loop repeat 10
-;      collect 1)
-;(loop for n from 1 to 10
-;      collect n)
-;(loop for n from 1 to 10
-;      collect (+ 100 n))
