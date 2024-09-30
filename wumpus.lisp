@@ -1,4 +1,4 @@
-(load "graph-util")
+;(load "graph-util")
 
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
@@ -85,3 +85,52 @@
 ;; exp: (connect-all-islands '(1 2 3 4) '((1 . 2) (2 . 1) (3 . 4) (4 . 3))) => ((3 . 2) (2 . 3) (3 . 4) (4 . 3) (1 . 3) (3 . 1))
 (defun connect-all-islands (nodes edge-list)
   (append (connect-with-bridges (find-islands nodes edge-list)) edge-list))
+
+;;; eqlとequalの違い
+;;; eql: 数値やシンボルの比較に使う
+;;; equal: リストや文字列の比較に使う
+;;; (equal "hello" "hello") => T (内容が同じ)
+;;; (eql "hello" "hello") => NIL (異なるメモリアドレス)
+
+;; 各ノードに直接接続されているエッジのリストを値とするalistを生成する関数
+;; exp: (edges-to-alist '((1 . 2) (2 . 1) (3 . 4) (4 . 3))) => ((1 (2)) (2 (1)) (3 (4)) (4 (3) (3)))
+(defun edges-to-alist (edge-list)
+  (mapcar (lambda (node1) ; mapcar: リストの各要素に対して関数を適用してリストを生成する
+            (cons node1
+             (mapcar (lambda (edge)
+                       (list (cdr edge)))
+                     (remove-duplicates (direct-edges node1 edge-list) ; remove-duplicate: リストから重複を削除する
+                                        :test #'equal)))) ; :test: 比較関数を指定する
+          (remove-duplicates (mapcar #'car edge-list))))
+(edges-to-alist '((1 . 2) (2 . 1) (3 . 4) (4 . 3) (2 . 3)))
+
+;; ノードのalistにcopsを追加する関数
+;; exp: (add-cops '((1 (2)) (2 (1)) (3 (4)) (4 (3))) '((1 . 2) (2 . 1) (3 . 4) (4 . 3))) => ((1 (2 cops)) (2 (1 cops)) (3 (4)) (4 (3)))
+;; exp: (intersection '(1 2 3) '(2 3 4)) => (2 3)
+(defun add-cops (edge-alist edges-with-cops)
+  (mapcar (lambda (x)
+            (let ((node1 (car x))
+                  (node1-edges (cdr x)))
+              (cons node1
+                    (mapcar (lambda (edge)
+                              (let ((node2 (car edge)))
+                                (if (intersection (edge-pair node1 node2) ; intersection: ２つのリストの共通部分を取得する
+                                                  edges-with-cops
+                                                  :test #'equal) ; :test: 比較関数を指定する
+                                    (list node2 'cops) ; 共通部分が存在する場合はcopsを追加
+                                    edge))) ; 共通部分が存在しない場合はそのまま追加
+                            node1-edges))))
+          edge-alist))
+
+(loop for i from 1 to 10 collect i)
+
+;; 都市のエッジを生成する関数
+;; exp: (make-city-edges) => ((1 (2 cops)) (2 (1 cops)) (3 (4)) (4 (3)))
+(defun make-city-edges ()
+  (let* ((nodes (loop for i from 1 to *node-num* ; 1から*node-num*までの数値の入ったリストを生成
+                      collect i))
+         (edge-list (connect-all-islands nodes (make-edge-list))) ; ランダムなエッジリストを生成して、すべての島をつなぐ橋を生成
+         (cops (remove-if-not (lambda (x)
+                                (zerop (random *cop-odds*))) ; 1/*cop-odds*の確率でcopを配置
+                              edge-list)))
+    (add-cops (edges-to-alist edge-list) cops)))
