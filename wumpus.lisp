@@ -134,3 +134,38 @@
                                 (zerop (random *cop-odds*))) ; 1/*cop-odds*の確率でcopを配置
                               edge-list)))
     (add-cops (edges-to-alist edge-list) cops)))
+
+;; alistから指定したノードの値を取得する関数
+;; exp: (neighbors 1 '((1 (2) (3)) (2 (1)))) => (2 3)
+(defun neighbors (node edge-alist)
+  (mapcar #'car (cdr (assoc node edge-alist))))
+
+;; 2つのノードが隣接しているかを判定する関数
+;; exp: (within-one 1 2 '((1 (2)) (2 (1)))) => (2)
+(defun within-one (a b edge-alist)
+  (member b (neighbors a edge-alist))) ; member: リストに指定された要素が含まれているか検証する
+
+;; 2つのノードが2つのエッジ以内を介して隣接しているかを判定する関数
+;; exp: (within-two 2 4 '((1 (2) (3)) (2 (1)) (3 (1) (4)) (4 (3)))) => NIL
+(defun within-two (a b edge-alist)
+  (or (within-one a b edge-alist) ; or: 引数のいずれかがTの場合にTを返す
+      (some (lambda (x) ; some: リストの各要素に対して関数を適用し、一つでも真の場合にTを返す
+              (within-one x b edge-alist))
+            (neighbors a edge-alist))))
+
+(defun make-city-nodes (edge-alist)
+  (let ((wumpus (random-node))
+        (glow-worms (loop for i below *worm-num*
+                     collect (random-node))))
+    (loop for n from 1 to *node-num*
+          collect (append (list n)
+                          (cond ((eql n wumpus) '(wumpus))
+                                ((within-two n wumpus edge-alist) '(blood!)))
+                          (cond ((member n glow-worms)
+                                 '(glow-worm))
+                                ((some (lambda (worm)
+                                         (within-one n worm edge-alist))
+                                       glow-worms)
+                                 '(lights!)))
+                          (when (some #'cdr (cdr (assoc n edge-alist)))
+                            '(sirens!))))))
