@@ -1,7 +1,9 @@
-;(load "graph-util")
+(load "graph-util")
 
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
+;; NOTE: 必要？
+;; (defparameter *player-pos* nil)
 (defparameter *visited-nodes* nil)
 (defparameter *node-num* 30)
 (defparameter *edge-num* 45)
@@ -153,19 +155,43 @@
               (within-one x b edge-alist))
             (neighbors a edge-alist))))
 
+;; 街の各ノードにwumpusやglow-wormsを配置する関数
+;; exp: (make-city-nodes '((1 (2 cops)) (2 (1 cops)) (3 (4)) (4 (3)))) =>
+;((1 SIRENS!) (2 SIRENS!) (3) (4) (5) (6) (7) (8) (9) (10) (11) (12) (13) (14)
+; (15 GLOW-WORM) (16) (17) (18) (19) (20) (21) (22) (23 GLOW-WORM) (24) (25)
+; (26 GLOW-WORM) (27) (28) (29 WUMPUS) (30) 
 (defun make-city-nodes (edge-alist)
-  (let ((wumpus (random-node))
-        (glow-worms (loop for i below *worm-num*
-                     collect (random-node))))
-    (loop for n from 1 to *node-num*
-          collect (append (list n)
-                          (cond ((eql n wumpus) '(wumpus))
-                                ((within-two n wumpus edge-alist) '(blood!)))
-                          (cond ((member n glow-worms)
-                                 '(glow-worm))
-                                ((some (lambda (worm)
+  (let ((wumpus (random-node)) ; wumpusをランダムなノードに配置
+        (glow-worms (loop for i below *worm-num* ; loop for {num} below {num} collect: {num}回繰り返し、collectでリストを生成する
+                     collect (random-node)))) ; glow-wormsを規定数ランダムなノードに配置
+    (loop for n from 1 to *node-num* ; 街の各ノードにたいしてループ
+          collect (append (list n) ; append: リストに要素を追加する
+                          (cond ((eql n wumpus) '(wumpus)) ; wumpusがいるノードには`wumpusを配置
+                                ((within-two n wumpus edge-alist) '(blood!))) ; nとwumpusとの距離が2以内の場合は'blood!を配置
+                          (cond ((member n glow-worms) ; member: リストに指定された要素が含まれているか検証する
+                                 '(glow-worm)) ; glow-wormがいるノードには'glow-wormを配置
+                                ((some (lambda (worm) ; some: リストの各要素に対して関数を適用し、一つでも真の場合にTを返す
                                          (within-one n worm edge-alist))
                                        glow-worms)
-                                 '(lights!)))
+                                 '(lights!))) ; glow-wormの隣のノードには'lights!を配置
                           (when (some #'cdr (cdr (assoc n edge-alist)))
-                            '(sirens!))))))
+                            '(sirens!)))))) ; 接続しているエッジにcopsがいるときには'sirens!を配置
+
+;; シンボルのないノードを探索する関数
+(defun find-empty-node ()
+  (let ((x (random-node)))
+    (if (cdr (assoc x *congestion-city-nodes*))
+        (find-empty-node) ; 何のシンボルもないノードが見つかるまで再帰実行
+        x))) ; 何のシンボルもないノードを返す
+
+(defun draw-city ()
+  (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
+
+(defun new-game ()
+  (setf *congestion-city-edges* (make-city-edges)) ; フィールドエッジの生成
+  (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*)) ; フィールドノードの生成
+  (setf *player-pos* (find-empty-node)) ; プレイヤーの初期値を設定
+  (setf *visited-nodes* (list *player-pos*)) ; プレイヤーの初期値を訪れたリストに追加
+  (draw-city))
+
+(new-game)
