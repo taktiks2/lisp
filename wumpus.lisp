@@ -124,8 +124,6 @@
                             node1-edges))))
           edge-alist))
 
-(loop for i from 1 to 10 collect i)
-
 ;; 都市のエッジを生成する関数
 ;; exp: (make-city-edges) => ((1 (2 cops)) (2 (1 cops)) (3 (4)) (4 (3)))
 (defun make-city-edges ()
@@ -184,14 +182,40 @@
         (find-empty-node) ; 何のシンボルもないノードが見つかるまで再帰実行
         x))) ; 何のシンボルもないノードを返す
 
+(defun known-city-nodes ()
+  (mapcar (lambda (node)
+           (if (member node *visited-nodes*)
+               (let ((n (assoc node *congestion-city-nodes*)))
+                 (if (eql node *player-pos*)
+                     (append n '(*))
+                     n))
+               (list node '?)))
+          (remove-duplicates
+            (append *visited-nodes*
+                    (mapcan (lambda (node)
+                              (mapcar #'car
+                               (cdr (assoc node *congestion-city-edges*))))
+                     *visited-nodes*)))))
+
+(defun known-city-edges ()
+  (mapcar (lambda (node)
+            (cons node (mapcar (lambda (x)
+                                 (if (member (car x) *visited-nodes*)
+                                     x
+                                     (list (car x))))
+                               (cdr (assoc node *congestion-city-edges*)))))
+          *visited-nodes*))
+
 (defun draw-city ()
   (ugraph->png "city" *congestion-city-nodes* *congestion-city-edges*))
+
+(defun draw-known-city ()
+  (ugraph->png "known-city" (known-city-nodes) (known-city-edges)))
 
 (defun new-game ()
   (setf *congestion-city-edges* (make-city-edges)) ; フィールドエッジの生成
   (setf *congestion-city-nodes* (make-city-nodes *congestion-city-edges*)) ; フィールドノードの生成
   (setf *player-pos* (find-empty-node)) ; プレイヤーの初期値を設定
   (setf *visited-nodes* (list *player-pos*)) ; プレイヤーの初期値を訪れたリストに追加
-  (draw-city))
-
-(new-game)
+  (draw-city)
+  (draw-known-city))
