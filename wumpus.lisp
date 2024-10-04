@@ -183,13 +183,13 @@
         x))) ; 何のシンボルもないノードを返す
 
 (defun known-city-nodes ()
-  (mapcar (lambda (node)
-           (if (member node *visited-nodes*)
-               (let ((n (assoc node *congestion-city-nodes*)))
-                 (if (eql node *player-pos*)
-                     (append n '(*))
-                     n))
-               (list node '?)))
+  (mapcar (lambda (node) ; mapcar: リストの各要素に対して関数を適用してリストを生成する
+           (if (member node *visited-nodes*) ; すでに訪れたノードかどうかを検証
+               (let ((n (assoc node *congestion-city-nodes*))) ; cityから指定したノードのalistを取得
+                 (if (eql node *player-pos*) ; nodeとプライヤーの場所が一致しているか検証
+                     (append n '(*)) ; 一致している場合は'*'を追加
+                     n)) ; 一致していない場合はそのまま追加
+               (list node '?))) ; 未訪問のノードには'?を付与
           (remove-duplicates
             (append *visited-nodes*
                     (mapcan (lambda (node)
