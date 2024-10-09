@@ -1,4 +1,4 @@
-(load "graph-util")
+;(load "graph-util")
 
 (defparameter *congestion-city-nodes* nil)
 (defparameter *congestion-city-edges* nil)
@@ -182,6 +182,12 @@
         (find-empty-node) ; 何のシンボルもないノードが見つかるまで再帰実行
         x))) ; 何のシンボルもないノードを返す
 
+;; mapcar: リストの各要素に対して関数を適用してリストを生成する
+;; mapcan: リストの各要素に対して関数を適用してリストを生成し、それらを結合して一つのリストにする
+;; exp: (mapcar #'1+ '(1 2 3 4)) ; => (2 3 4 5)
+;; exp: (mapcan (lambda (x) (list x x)) '(1 2 3 4)) ; => (1 1 2 2 3 3 4 4)
+
+;; すでに訪れたノードのリストを取得する関数
 (defun known-city-nodes ()
   (mapcar (lambda (node) ; mapcar: リストの各要素に対して関数を適用してリストを生成する
            (if (member node *visited-nodes*) ; すでに訪れたノードかどうかを検証
@@ -190,9 +196,9 @@
                      (append n '(*)) ; 一致している場合は'*'を追加
                      n)) ; 一致していない場合はそのまま追加
                (list node '?))) ; 未訪問のノードには'?を付与
-          (remove-duplicates
-            (append *visited-nodes*
-                    (mapcan (lambda (node)
+          (remove-duplicates ; remove-duplicates: リストから重複を削除する
+            (append *visited-nodes* ; *visited-nodes*の後ろに要素を追加する
+                    (mapcan (lambda (node) ; mapcanを利用して多重リストをフラットにする
                               (mapcar #'car
                                (cdr (assoc node *congestion-city-edges*))))
                      *visited-nodes*)))))
